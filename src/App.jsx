@@ -1,16 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Leaf, Truck } from 'lucide-react';
 import Logo from './components/Logo';
 import Button from './components/Button';
-import LandingPage from './pages/LandingPage';
-import InteractiveMap from './pages/InteractiveMap';
-import DonorDashboard from './pages/DonorDashboard';
-import CollectorView from './pages/CollectorView';
-import MobilePWA from './pages/MobilePWA';
 import AuthModal from './components/AuthModal';
 
+// Code-split: each page loads only when navigated to
+const LandingPage = React.lazy(() => import('./pages/LandingPage'));
+const InteractiveMap = React.lazy(() => import('./pages/InteractiveMap'));
+const DonorDashboard = React.lazy(() => import('./pages/DonorDashboard'));
+const CollectorView = React.lazy(() => import('./pages/CollectorView'));
+const MobilePWA = React.lazy(() => import('./pages/MobilePWA'));
+
 import { FoodRescueProvider, useFoodRescue } from './context/FoodRescueContext';
+
+const PageLoader = () => (
+  <div className="min-h-[60vh] flex items-center justify-center">
+    <div className="flex flex-col items-center gap-4">
+      <div className="w-10 h-10 border-4 border-[#1A9E6E] border-t-transparent rounded-full animate-spin" />
+      <p className="text-sm text-gray-400 font-bold">Loading...</p>
+    </div>
+  </div>
+);
 
 function AppContent() {
   const [page, setPage] = useState('landing');
@@ -144,7 +155,9 @@ function AppContent() {
       </AnimatePresence>
 
       <main>
-        {renderPage()}
+        <Suspense fallback={<PageLoader />}>
+          {renderPage()}
+        </Suspense>
       </main>
     </div>
   );

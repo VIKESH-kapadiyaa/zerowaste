@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { LISTINGS as initialListings } from '../data/mockData';
 
@@ -11,6 +11,8 @@ export const FoodRescueProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null); // null means logged out
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [initialRole, setInitialRole] = useState('donor');
+  const [isLoading, setIsLoading] = useState(true); // Prevents blank flash
+  const currentUserRef = useRef(null); // Avoids stale closure in listeners
 
   const login = async (businessName, role, address) => {
     // 1. Get the authenticated Supabase user (from Google or Email)
@@ -30,7 +32,9 @@ export const FoodRescueProvider = ({ children }) => {
       
       if (!error) {
         // 3. Update the Frontend App State
-        setCurrentUser({ id: session.user.id, name: businessName, role });
+        const user = { id: session.user.id, name: businessName, role };
+        setCurrentUser(user);
+        currentUserRef.current = user;
         setAuthModalOpen(false);
       } else {
         console.error("Database UPSERT Error:", error);
@@ -82,14 +86,22 @@ export const FoodRescueProvider = ({ children }) => {
 
     // 1b. Restore Persistent User Session from LocalStorage
     const restoreSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
-        if (profile) {
-          setCurrentUser({ id: profile.id, name: profile.business_name, role: profile.role });
-        } else {
-          setAuthModalOpen(true); // User hasn't finished Step 2 yet
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+          if (profile) {
+            const user = { id: profile.id, name: profile.business_name, role: profile.role };
+            setCurrentUser(user);
+            currentUserRef.current = user;
+          } else {
+            setAuthModalOpen(true); // User hasn't finished Step 2 yet
+          }
         }
+      } catch (err) {
+        console.warn('Session restore failed:', err);
+      } finally {
+        setIsLoading(false); // Always stop loading, even on error
       }
     };
     restoreSession();
@@ -97,14 +109,16 @@ export const FoodRescueProvider = ({ children }) => {
     // Intercept Google Redirects and auto-resume session
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session) {
-        // Check if they exist in Profiles table
         const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
         if (profile) {
-          setCurrentUser({ id: profile.id, name: profile.business_name, role: profile.role });
-        } else if (event === 'SIGNED_IN' && !currentUser) {
+          const user = { id: profile.id, name: profile.business_name, role: profile.role };
+          setCurrentUser(user);
+          currentUserRef.current = user;
+        } else if (event === 'SIGNED_IN' && !currentUserRef.current) {
           setAuthModalOpen(true); // Pop open the Business Details phase!
         }
       }
+      setIsLoading(false);
     });
 
     fetchLiveListings();
@@ -192,6 +206,18 @@ export const FoodRescueProvider = ({ children }) => {
       item.name === listingToClaim.name && item.status === "Active" ? { ...item, status: "Claimed", impact: "Claimed" } : item
     ));
   };
+
+  // Show a loading spinner until auth state is resolved
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#F5F0E8] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-[#1A9E6E] border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-gray-500 font-bold">Loading ZeroWaste...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <FoodRescueContext.Provider value={{ 
