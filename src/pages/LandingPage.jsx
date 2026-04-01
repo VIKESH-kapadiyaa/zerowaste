@@ -56,7 +56,7 @@ import { useFoodRescue } from '../context/FoodRescueContext';
                     animate={{ scale: [1, 1.1, 1], opacity: [0.8, 1, 0.8] }}
                     transition={{ duration: 3, repeat: Infinity, delay: i * 0.5 }}
                     className="absolute p-3 bg-white shadow-lg rounded-xl border border-[#1A9E6E]/20 flex items-center gap-3 cursor-pointer hover:border-[#1A9E6E]"
-                    style={{ left: `${l.coords.x}%`, top: `${l.coords.y}%` }}
+                    style={{ left: `${l.coords?.x || (20 + (i * 15)) % 80}%`, top: `${l.coords?.y || (20 + (i * 10)) % 80}%` }}
                   >
                     <div className="w-2 h-2 rounded-full bg-[#1A9E6E] animate-ping" />
                     <div>
