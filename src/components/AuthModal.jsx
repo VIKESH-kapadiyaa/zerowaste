@@ -55,32 +55,47 @@ const AuthModal = () => {
     e.preventDefault();
     if (!email || !password) return;
 
-    // 1. Try to sign in first
+    // 1. Try to sign in first (existing user)
     let { data, error } = await supabase.auth.signInWithPassword({ email, password });
     
-    // 2. If user doesn't exist, create a new account!
-    if (error && error.message.includes('Invalid login')) {
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({ email, password });
-      data = signUpData;
-      error = signUpError;
-    }
-
+    // 2. If credentials are wrong, try creating a new account
     if (error) {
-      alert("Auth Error: " + error.message);
-      return;
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({ email, password });
+      
+      if (signUpError) {
+        // If signup also fails (e.g. "User already registered" with wrong password)
+        alert("Could not sign in. Please check your email and password.");
+        return;
+      }
+      
+      // After signup, try signing in immediately
+      const { data: retryData, error: retryError } = await supabase.auth.signInWithPassword({ email, password });
+      if (retryError) {
+        // Email confirmation might be required
+        alert("Account created! Please check your email to confirm, then sign in.");
+        return;
+      }
+      data = retryData;
     }
 
-    // Success! Move to step 2 to collect their Business Name
+    // 3. Check if this user already has a profile (returning user)
+    if (data?.session) {
+      const { data: profile } = await supabase.from('profiles').select('*').eq('id', data.session.user.id).single();
+      if (profile) {
+        // Returning user! Skip step 2 and log them in directly
+        login(profile.business_name, profile.role, profile.address);
+        return;
+      }
+    }
+
+    // 4. New user — collect their Business Name in step 2
     setStep(2);
   };
 
   const handleFinalSubmit = async (e) => {
     e.preventDefault();
     if (businessName.trim()) {
-      // Here you would normally run an UPSERT to the Supabase 'profiles' table 
-      // await supabase.from('profiles').upsert({ id: user.id, business_name: businessName, role, address })
-      
-      login(businessName, role);
+      await login(businessName, role, address);
       setStep(1);
     }
   };
