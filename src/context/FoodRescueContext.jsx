@@ -128,30 +128,40 @@ export const FoodRescueProvider = ({ children }) => {
 
   // 2. Fetch Live Database Food Listings
   const fetchLiveListings = async () => {
-    const { data: liveListings, error } = await supabase.from('listings').select('*, profiles(business_name)').eq('status', 'active');
-    
-    if (error) {
-      console.error(error);
-      return;
-    }
+    try {
+      const { data: liveListings, error } = await supabase
+        .from('listings')
+        .select(`
+          *,
+          donor:profiles!donor_id(business_name)
+        `)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error("Supabase Database Fetch Error:", error.message);
+        return;
+      }
 
-    // If database is completely empty, fallback to mock data to keep the Demo looking rich
-    if (!liveListings || liveListings.length === 0) {
-      setListings(initialListings.map(l => ({ ...l, position: [51.505 + (Math.random()-0.5)*0.08, -0.09 + (Math.random()-0.5)*0.08] })));
-    } else {
-      // Structure the live DB records to match our frontend format
-      const mapped = liveListings.map(l => ({
-        id: l.id,
-        name: l.name,
-        qty: l.qty,
-        urgency: l.urgency,
-        donor: l.profiles?.business_name || 'Anonymous',
-        position: [l.lat, l.lng],
-        time: 120, // Mock exp time
-        tags: l.tags || [],
-        dist: "0km" // Handled by distance calc
-      }));
-      setListings(mapped);
+      // If database is completely empty, fallback for Demo, but once we have live data, show real records
+      if (!liveListings || liveListings.length === 0) {
+        setListings(initialListings.map(l => ({ ...l, position: [51.505 + (Math.random()-0.5)*0.08, -0.09 + (Math.random()-0.5)*0.08] })));
+      } else {
+        const mapped = liveListings.map(l => ({
+          id: l.id,
+          name: l.name,
+          qty: l.qty,
+          urgency: l.urgency,
+          donor: l.donor?.business_name || 'Anonymous Donor',
+          position: [l.lat, l.lng],
+          time: 120,
+          tags: l.tags || [],
+          dist: "0.1km"
+        }));
+        setListings(mapped);
+      }
+    } catch (err) {
+      console.error("Critical Fetch Error:", err);
     }
   };
 
@@ -162,19 +172,29 @@ export const FoodRescueProvider = ({ children }) => {
     const lat = userLocation ? userLocation[0] : 51.505;
     const lng = userLocation ? userLocation[1] : -0.09;
 
-    if (currentUser.id.length > 15) { // If true Supabase User
-      const { error } = await supabase.from('listings').insert({
-        donor_id: currentUser.id,
+    // Check if truly a Supabase user by session
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (session) {
+      const { data, error } = await supabase.from('listings').insert({
+        donor_id: session.user.id,
         name: newListing.name,
         qty: newListing.qty,
         urgency: newListing.urgency,
         lat: lat,
         lng: lng,
         status: 'active'
-      });
-      if (!error) fetchLiveListings(); // Refetch Data immediately
+      }).select();
+      
+      if (error) {
+        console.error("Data Save Error:", error.message);
+        alert("Failed to save to database: " + error.message);
+      } else {
+        console.log("Listing successfully saved to Supabase:", data);
+        fetchLiveListings(); // Refresh UI
+      }
     } else {
-      // Mock Fallback
+      // Local Demo Memory Fallback
       const listing = {
         ...newListing, id: Date.now(), donor: currentUser.name, position: [lat, lng],
         dist: "0km", tags: [], time: 120
