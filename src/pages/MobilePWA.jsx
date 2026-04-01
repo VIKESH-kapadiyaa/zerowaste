@@ -2,47 +2,23 @@ import React from 'react';
 import { Bell, Clock, MapPin, Plus, BarChart3, Leaf } from 'lucide-react';
 import Logo from '../components/Logo';
 import Button from '../components/Button';
-
 const MobilePWA = () => {
-  const [deferredPrompt, setDeferredPrompt] = React.useState(null);
-
-  React.useEffect(() => {
-    // Listen for the special PWA installation event
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault(); // Prevent standard browser prompts
-      setDeferredPrompt(e); // Save it so we can trigger it from our button
-    });
-  }, []);
-
-  const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      setDeferredPrompt(null);
-    }
-  };
-
   return (
   <div className="min-h-screen bg-[#F5F0E8] py-12 px-6 flex flex-col items-center">
     <div className="text-center mb-8">
-      <h2 className="text-3xl font-bold text-[#0D2B1F]" style={{ fontFamily: 'Space Grotesk' }}>Mobile PWA Experience</h2>
-      <p className="text-gray-500 max-w-md mx-auto mb-6">ZeroWaste is fundamentally designed for speed on mobile. Install the Progressive Web App directly to your device for offline support and native performance.</p>
+      <h2 className="text-3xl font-bold text-[#0D2B1F]" style={{ fontFamily: 'Space Grotesk' }}>Mobile APK Download</h2>
+      <p className="text-gray-500 max-w-md mx-auto mb-6">ZeroWaste is fully authorized for native Android installation. Download the direct `.apk` wrapper below to install it on any untethered device.</p>
       
-      {deferredPrompt ? (
-        <Button 
-          onClick={handleInstallClick} 
-          className="bg-[#1A9E6E] hover:bg-[#1A9E6E]/90 shadow-xl px-8 py-4 rounded-xl font-bold flex items-center gap-3 mx-auto"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
-          Install ZeroWaste (APK)
-        </Button>
-      ) : (
-        <div className="bg-white px-6 py-4 rounded-xl border border-gray-200 text-sm text-gray-500 flex items-center gap-3 max-w-md mx-auto shadow-sm">
-          <Leaf className="text-[#1A9E6E] shrink-0" size={18} />
-          <span>If using an iPhone, tap the Share icon and select <b>"Add to Home Screen"</b> to install the app native wrapper!</span>
-        </div>
-      )}
+      <a 
+        href="/zerowaste.apk" 
+        download="zerowaste.apk"
+        className="bg-[#0D2B1F] hover:bg-[#0D2B1F]/90 text-white shadow-xl px-8 py-4 rounded-xl font-bold flex items-center justify-center gap-3 w-fit mx-auto transition-all"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+        Download Android APK
+      </a>
+      
+      <p className="text-[10px] text-gray-400 mt-4 max-w-sm mx-auto">Requires Android 8.0+. You may need to "Allow apps from unknown sources" in your settings to install the package.</p>
     </div>
 
     <div className="flex flex-wrap justify-center gap-12 max-w-5xl">

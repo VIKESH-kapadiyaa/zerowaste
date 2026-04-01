@@ -1,0 +1,27 @@
+{
+  "background_color": "#ffffff",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "zerowaste",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "zerowaste-chi.vercel",
+  "start_url": "zerowaste-chi.vercel.app",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "https://zerowaste-chi.vercel.app/favicon.svg",
+      "type": "image/svg+xml",
+      "isSquare": false,
+      "isPng": false,
+      "isWebp": false,
+      "isJpg": false,
+      "width": 0,
+      "is512x512": false,
+      "is256x256": false,
+      "is192x192": false
+    }
+  ],
+  "id": "idzerowaste1.0",
+  "lang": "en"
+}
